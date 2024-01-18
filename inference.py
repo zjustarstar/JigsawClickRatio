@@ -55,12 +55,24 @@ def img_process(imgfile, model="resnet"):
     return x
 
 
+def get_pred_with_pos(x, pos, model):
+    p = torch.from_numpy((np.array(pos)))
+    input_pos = torch.unsqueeze(p, 0).cuda()
+
+    result = model(x, input_pos, model_type=MODEL_TYPE)
+    result = result.squeeze(-1)
+    result = result.float().item()
+
+    return result
+
+
 def get_pred(data, model):
     true_num_60 = 0
     true_num_120 = 0
     true_num_180 = 0
 
-    pred, label, img_name = [], [], []
+    pred, label, img_name, pos_list = [], [], [], []
+    pred_p0, pred_p1, pred_p2 = [], [], []
     total_error = 0
     for key, value in data.items():
         fname = key
@@ -81,6 +93,7 @@ def get_pred(data, model):
         pred.append(results)
         label.append(true_ratio)
         img_name.append(key)
+        pos_list.append(value[0])
 
         if temp < 1:
             true_num_60 += 1
@@ -88,6 +101,14 @@ def get_pred(data, model):
             true_num_120 += 1
         if temp < 3:
             true_num_180 += 1
+
+        # 计算在不同位置上的可能点击率
+        p0 = get_pred_with_pos(x, 1, model)
+        p1 = get_pred_with_pos(x, 6, model)
+        p2 = get_pred_with_pos(x, 10, model)
+        pred_p0.append(p0)
+        pred_p1.append(p1)
+        pred_p2.append(p2)
 
         total_error += temp
 
@@ -97,7 +118,7 @@ def get_pred(data, model):
     num180 = round(true_num_180 / len(pred),2)
     print(f'avg = {avg_error}, error<1={num60}, error<2={num120}, error<3={num180}')
 
-    return img_name, pred, label
+    return img_name, pred, label, pos_list, pred_p0, pred_p1, pred_p2
 
 
 
@@ -117,11 +138,11 @@ if __name__ == '__main__':
         data = json.load(r)
 
     print(f'length of samples = {len(data.items())}')
-    img_name, pred, label = get_pred(data, model)
+    img_name, pred, label, pos_list, pred_p0, pred_p1, pred_p2 = get_pred(data, model)
     util.draw_lines(pred, label)
     # 写入文件
     save_file = "pred.csv"
-    util.save_to_cvs(img_name, pred, label, save_file)
+    util.save_to_cvs(img_name, pred, label, pos_list, save_file, pred_p0, pred_p1, pred_p2)
 
 #
 # transform_test = transforms.Compose([

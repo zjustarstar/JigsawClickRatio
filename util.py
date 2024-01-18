@@ -21,13 +21,25 @@ def draw_lines(pred, label):
     plt.show()
 
 
-def save_to_cvs(img_name, pred, label, savefile):
+def pos_cls(pos):
+    for i in range(len(pos)):
+        if 1 <= pos[i] <= 4:
+            pos[i] = 0
+        elif 5 <= pos[i] <= 8:
+            pos[i] = 1
+        else:
+            pos[i] = 2
+    return pos
+
+
+def save_to_cvs(img_name, pred, label, pos, savefile, pred0, pred1, pred2):
+    pos = pos_cls(pos)
     # 将数据写入CSV文件
     with open(savefile, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['name', 'pred', 'true'])  # 写入表头
+        writer.writerow(['name', 'pos', 'pred', 'true', 'pred0', 'pred1', 'pred2'])  # 写入表头
         for i in range(len(img_name)):
-            writer.writerow([img_name[i], pred[i], label[i]])  # 逐行写入数据
+            writer.writerow([img_name[i], pos[i], pred[i], label[i], pred0[i], pred1[i], pred2[i]])  # 逐行写入数据
 
     print("save done")
 
